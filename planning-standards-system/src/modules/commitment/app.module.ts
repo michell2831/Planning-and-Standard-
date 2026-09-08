@@ -16,6 +16,7 @@ import { AuditService } from './service/audit.service';
 import { AuditDispatcherService } from './service/audit-dispatcher.service';
 import { KafkaAuditProducer } from '../../common/kafka/kafka-audit.producer';
 import { RequestContextMiddleware } from '../../common/context/request-context';
+import { MockOfficeSeederService } from './service/mock-office-seeder.service';
 
 @Module({
     imports: [
@@ -58,6 +59,7 @@ import { RequestContextMiddleware } from '../../common/context/request-context';
         AuditService,
         AuditDispatcherService,
         KafkaAuditProducer,
+        MockOfficeSeederService,
     ],
 })
 export class AppModule implements NestModule {

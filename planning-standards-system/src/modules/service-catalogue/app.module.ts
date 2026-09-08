@@ -10,6 +10,7 @@ import { ServiceCatalogueService } from './service/service-catalogue.service';
 import { ServiceMode } from './database/service-mode.entity';
 import { ServiceModeController } from './controller/service-mode.controller';
 import { ServiceModeService } from './service/service-mode.service';
+import { CatalogueSeederService } from './service/catalogue-seeder.service';
 import { HttpModule } from '@nestjs/axios';
 import { RequestContextMiddleware } from '../../common/context/request-context';
 
@@ -43,7 +44,7 @@ import { RequestContextMiddleware } from '../../common/context/request-context';
     TypeOrmModule.forFeature([Service, ServiceVersion, IntakeField, NaFlag, ServiceMode], 'catalogue_db'),
   ],
   controllers: [ServiceCatalogueController, ServiceModeController],
-  providers: [ServiceCatalogueService, ServiceModeService],
+  providers: [ServiceCatalogueService, ServiceModeService, CatalogueSeederService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
