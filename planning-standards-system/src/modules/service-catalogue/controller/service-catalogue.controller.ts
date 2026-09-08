@@ -32,7 +32,7 @@ import { Permission } from '../../../common/rbac/permission.enum';
 @ApiTags('Service Catalogue')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/services')
+@Controller(['api/services', 'services'])
 export class ServiceCatalogueController {
     constructor(private readonly svc: ServiceCatalogueService) { }
 

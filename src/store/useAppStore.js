@@ -442,7 +442,7 @@ export const useAppStore = create((set, get) => ({
                 set({ loadingServices: false });
             }
         } catch (err) {
-            console.warn('[useAppStore] fetchServices API unavailable, using cached/mock:', err?.message);
+            console.error('[useAppStore] fetchServices API unavailable, using cached/mock:', err);
             const cached = getCached('pss_services', DEFAULT_SERVICES);
             set({ services: cached, loadingServices: false });
         }

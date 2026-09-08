@@ -14,7 +14,10 @@ async function request(url, options = {}) {
     ...options.headers,
   };
 
-  const endpoint = url.startsWith('/') ? url : `/${url}`;
+  let endpoint = url.startsWith('/') ? url : `/${url}`;
+  if (PRIMARY_API_BASE.endsWith('/api') && endpoint.startsWith('/api/')) {
+    endpoint = endpoint.replace(/^\/api/, '');
+  }
 
   let response;
   let usedFallback = false;

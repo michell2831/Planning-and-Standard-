@@ -9,7 +9,7 @@ import { Permission } from '../../../common/rbac/permission.enum';
 @ApiTags('Service Catalogue')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller('api/service-modes')
+@Controller(['api/service-modes', 'service-modes'])
 export class ServiceModeController {
     constructor(private readonly svc: ServiceModeService) { }
 

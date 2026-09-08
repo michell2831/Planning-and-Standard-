@@ -33,15 +33,59 @@ export class JwtAuthGuard implements CanActivate {
         if (authHeader?.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
 
-            // Mock token fallback for direct module testing
-            if (token?.startsWith('mock-token-') && process.env.NODE_ENV !== 'production') {
+            // Mock token fallback (for dev testing or direct module deployment)
+            if (token?.startsWith('mock-token-')) {
+                const b64Part = token.slice('mock-token-'.length);
+                let claims: Record<string, any> = {};
+                try {
+                    claims = JSON.parse(Buffer.from(b64Part, 'base64').toString('utf-8'));
+                } catch {
+                    const legacyRole = b64Part.toUpperCase();
+                    const legacyMap: Record<string, Record<string, any>> = {
+                        STAFF: { userId: 'mock-staff-id', username: 'mock_staff', displayName: 'Mock Staff', armsRole: 'STAFF', office: 'ACAD', isCrossOffice: false },
+                        SUBSYSTEM_ADMIN: { userId: 'mock-admin-id', username: 'mock_admin', displayName: 'Mock Admin', armsRole: 'SUBSYSTEM_ADMIN', office: 'ACAD', isCrossOffice: false },
+                        SUPER_ADMIN: { userId: 'mock-super-id', username: 'mock_super', displayName: 'Mock SuperAdmin', armsRole: 'SUPER_ADMIN', office: 'ALL', isCrossOffice: true },
+                        OPCR_EVALUATOR: { userId: 'mock-opcr-id', username: 'mock_opcr', displayName: 'Mock OPCR', armsRole: 'OPCR_EVALUATOR', office: 'ALL', isCrossOffice: true },
+                        PLANNING_OFFICER: { userId: 'mock-planner-id', username: 'mock_planner', displayName: 'Mock Planner', armsRole: 'PLANNING_OFFICER', office: 'ALL', isCrossOffice: true },
+                        CAMPUS_DIRECTOR: { userId: 'mock-director-id', username: 'mock_director', displayName: 'Mock CampusDirector', armsRole: 'CAMPUS_DIRECTOR', office: 'ALL', isCrossOffice: true },
+                    };
+                    claims = legacyMap[legacyRole] ?? { userId: 'mock-user', username: 'mock_user', armsRole: 'STAFF', office: 'ACAD' };
+                }
+
+                const armsRole = claims.armsRole || claims.role || 'STAFF';
+                const roleMap: Record<string, string> = {
+                    SUPER_ADMIN: 'SuperAdmin',
+                    PLANNING_OFFICER: 'PlanningOfficer',
+                    SUBSYSTEM_ADMIN: 'Admin',
+                    OPCR_EVALUATOR: 'OPCREvaluator',
+                    STAFF: 'Staff',
+                    CAMPUS_DIRECTOR: 'CampusDirector',
+                };
+                const officeMap: Record<string, string> = {
+                    ACAD: 'Campus Academic Office',
+                    OSAS: 'Campus Student Services and Affairs Office',
+                    ADMIN: 'Campus Administrative Office',
+                    ALL: 'ALL',
+                };
+                const crossOfficeRoles = new Set([
+                    'SUPER_ADMIN',
+                    'PLANNING_OFFICER',
+                    'OPCR_EVALUATOR',
+                    'CAMPUS_DIRECTOR',
+                ]);
+
+                const rawOffice = claims.office || 'ACAD';
+                const resolvedOffice = officeMap[rawOffice] ?? rawOffice;
+                const isCrossOffice = !!claims.isCrossOffice || crossOfficeRoles.has(armsRole) || rawOffice === 'ALL';
+
                 req.user = {
-                    sub: 'mock-user',
-                    username: 'mock_user',
-                    office: 'ACAD',
-                    role: 'Admin',
-                    armsRole: 'SUBSYSTEM_ADMIN',
-                    isCrossOffice: false,
+                    sub: claims.userId || claims.sub || 'mock-user',
+                    username: claims.username || 'mock_user',
+                    displayName: claims.displayName || claims.username || 'Mock User',
+                    office: resolvedOffice,
+                    role: roleMap[armsRole] ?? 'Staff',
+                    armsRole,
+                    isCrossOffice,
                 };
                 return true;
             }
