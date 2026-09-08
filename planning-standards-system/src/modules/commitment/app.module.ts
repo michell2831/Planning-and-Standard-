@@ -17,6 +17,8 @@ import { AuditDispatcherService } from './service/audit-dispatcher.service';
 import { KafkaAuditProducer } from '../../common/kafka/kafka-audit.producer';
 import { RequestContextMiddleware } from '../../common/context/request-context';
 
+import { CommitmentSeederService } from './service/commitment-seeder.service';
+
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
@@ -36,11 +38,7 @@ import { RequestContextMiddleware } from '../../common/context/request-context';
                 entities: [Commitment, CommitmentItem, CommitmentVersion, PendingAuditEvent],
                 migrations: [__dirname + '/database/migrations/*.{ts,js}'],
                 migrationsTableName: 'typeorm_migrations',
-                // Migrations are now the source of truth for this service.
-                // migrationsRun: true applies pending migrations automatically
-                // on boot; synchronize: false prevents TypeORM from modifying
-                // the schema outside of the controlled migration path.
-                synchronize: false,
+                synchronize: true,
                 migrationsRun: true,
                 logging: config.get('NODE_ENV') !== 'production',
             }),
@@ -58,6 +56,7 @@ import { RequestContextMiddleware } from '../../common/context/request-context';
         AuditService,
         AuditDispatcherService,
         KafkaAuditProducer,
+        CommitmentSeederService,
     ],
 })
 export class AppModule implements NestModule {

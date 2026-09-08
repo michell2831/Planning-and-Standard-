@@ -9,7 +9,8 @@
     "start:commitment": "cd src/modules/commitment && npm run start:dev",
     "install:all": "cd src/modules/service-catalogue && npm install && cd ../kpi-sla && npm install && cd ../commitment && npm install",
     "docker:up": "docker compose up --build",
-    "docker:down": "docker compose down"
+    "docker:down": "docker compose down",
+    "seed:all": "node scripts/seed-all.js"
   },
   "devDependencies": {
     "@nestjs/common": "^11.1.26",

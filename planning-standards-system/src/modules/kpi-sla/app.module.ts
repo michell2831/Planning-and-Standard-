@@ -19,6 +19,8 @@ import { PhHolidayService } from './service/ph-holiday.service';
 import { HolidaySeederService } from './service/holiday-seeder.service';
 import { RequestContextMiddleware } from '../../common/context/request-context';
 
+import { PeriodKpiSeederService } from './service/period-kpi-seeder.service';
+
 @Module({
     imports: [
         ConfigModule.forRoot({ isGlobal: true }),
@@ -45,7 +47,7 @@ import { RequestContextMiddleware } from '../../common/context/request-context';
         ),
     ],
     controllers: [KpiSlaController, MonitorController, SlaComputationController],
-    providers: [KpiSlaService, MonitorService, SlaComputationService, PhHolidayService, HolidaySeederService],
+    providers: [KpiSlaService, MonitorService, SlaComputationService, PhHolidayService, HolidaySeederService, PeriodKpiSeederService],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

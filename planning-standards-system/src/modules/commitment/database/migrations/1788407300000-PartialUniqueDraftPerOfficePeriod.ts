@@ -25,11 +25,22 @@ export class PartialUniqueDraftPerOfficePeriod1788407300000 implements Migration
   name = 'PartialUniqueDraftPerOfficePeriod1788407300000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    const tableExists = await queryRunner.query(`
+      SELECT EXISTS (
+        SELECT 1 FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'commitment'
+      ) AS "exists";
+    `);
+    if (!tableExists?.[0]?.exists) {
+      console.log('[Migration] Table "commitment" does not exist yet — skipping PartialUniqueDraftPerOfficePeriod.');
+      return;
+    }
+
     await queryRunner.query(`
       ALTER TABLE "commitment" DROP CONSTRAINT IF EXISTS "uq_commitment_office_period_draft";
     `);
     await queryRunner.query(`
-      CREATE UNIQUE INDEX "uq_commitment_office_period_draft"
+      CREATE UNIQUE INDEX IF NOT EXISTS "uq_commitment_office_period_draft"
       ON "commitment" ("office", "period_id")
       WHERE "status" = 'Draft';
     `);

@@ -145,13 +145,6 @@ async function seedPeriods() {
             period_type: 'Quarterly',
             start_date: '2026-01-01',
             end_date: '2026-03-31',
-            shouldComplete: true,
-        },
-        {
-            name: 'Q2-2026',
-            period_type: 'Quarterly',
-            start_date: '2026-04-01',
-            end_date: '2026-06-30',
             shouldComplete: false,
         },
     ];
