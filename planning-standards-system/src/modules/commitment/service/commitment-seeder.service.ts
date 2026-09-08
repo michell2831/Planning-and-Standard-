@@ -28,7 +28,8 @@ export class CommitmentSeederService implements OnApplicationBootstrap {
             await this.seedCommitments();
         } catch (err) {
             // NEVER crash NestJS on seeding error — log warning only
-            this.logger.warn(`Commitment auto-seed skipped or encountered an error: ${err.message}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.warn(`Commitment auto-seed skipped or encountered an error: ${msg}`);
         }
     }
 
@@ -59,8 +60,9 @@ export class CommitmentSeederService implements OnApplicationBootstrap {
             );
             periods = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
             this.logger.warn(
-                `Could not fetch periods from ${kpiSlaBase} (${err.message}). Commitment seeding skipped.`,
+                `Could not fetch periods from ${kpiSlaBase} (${msg}). Commitment seeding skipped.`,
             );
             return;
         }
@@ -96,7 +98,8 @@ export class CommitmentSeederService implements OnApplicationBootstrap {
                     );
                     kpis = Array.isArray(kpiRes.data) ? kpiRes.data : (kpiRes.data?.data ?? []);
                 } catch (kpiErr) {
-                    this.logger.warn(`Could not fetch KPIs for office ${office}: ${kpiErr.message}`);
+                    const msg = kpiErr instanceof Error ? kpiErr.message : String(kpiErr);
+                    this.logger.warn(`Could not fetch KPIs for office ${office}: ${msg}`);
                     continue;
                 }
 
@@ -135,7 +138,8 @@ export class CommitmentSeederService implements OnApplicationBootstrap {
                     `Created and locked commitment for ${office} (id=${savedCommitment.id}, items=${items.length})`,
                 );
             } catch (officeErr) {
-                this.logger.warn(`Failed to seed commitment for office ${office}: ${officeErr.message}`);
+                const msg = officeErr instanceof Error ? officeErr.message : String(officeErr);
+                this.logger.warn(`Failed to seed commitment for office ${office}: ${msg}`);
             }
         }
     }

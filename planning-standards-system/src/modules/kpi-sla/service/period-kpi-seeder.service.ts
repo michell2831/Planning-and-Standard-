@@ -29,7 +29,8 @@ export class PeriodKpiSeederService implements OnApplicationBootstrap {
             await this.seedKpis();
         } catch (err) {
             // NEVER crash NestJS on seeding error — log warning only
-            this.logger.warn(`Period & KPI auto-seed skipped or encountered an error: ${err.message}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.warn(`Period & KPI auto-seed skipped or encountered an error: ${msg}`);
         }
     }
 
@@ -56,7 +57,8 @@ export class PeriodKpiSeederService implements OnApplicationBootstrap {
                 this.logger.log(`Evaluation periods already exist (${count} period(s)). Skipping period seeding.`);
             }
         } catch (err) {
-            this.logger.warn(`Failed to seed initial period "${periodDef.name}": ${err.message}`);
+            const msg = err instanceof Error ? err.message : String(err);
+            this.logger.warn(`Failed to seed initial period "${periodDef.name}": ${msg}`);
         }
     }
 
@@ -80,8 +82,9 @@ export class PeriodKpiSeederService implements OnApplicationBootstrap {
             );
             services = Array.isArray(res.data) ? res.data : (res.data?.data ?? []);
         } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
             this.logger.warn(
-                `Could not fetch services from ${catalogueBase} (${err.message}). KPI seeding will be skipped.`,
+                `Could not fetch services from ${catalogueBase} (${msg}). KPI seeding will be skipped.`,
             );
             return;
         }
@@ -143,7 +146,8 @@ export class PeriodKpiSeederService implements OnApplicationBootstrap {
                             this.logger.log(`Created KPI "${kpiDef.name}" for service "${svc.name}" (${office})`);
                         }
                     } catch (kpiErr) {
-                        this.logger.warn(`Failed to seed KPI "${kpiDef.name}": ${kpiErr.message}`);
+                        const msg = kpiErr instanceof Error ? kpiErr.message : String(kpiErr);
+                        this.logger.warn(`Failed to seed KPI "${kpiDef.name}": ${msg}`);
                     }
                 }
             }

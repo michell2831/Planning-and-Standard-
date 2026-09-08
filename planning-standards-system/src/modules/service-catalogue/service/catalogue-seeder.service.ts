@@ -52,7 +52,8 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
       await this.seedCatalogue();
     } catch (err) {
       // NEVER crash NestJS on seeding error — log warning only
-      this.logger.warn(`Catalogue auto-seed skipped or encountered an error: ${err.message}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`Catalogue auto-seed skipped or encountered an error: ${msg}`);
     }
   }
 
@@ -122,7 +123,8 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
             rawRecords.push(...content);
           }
         } catch (e) {
-          this.logger.warn(`Failed to parse ${file}: ${e.message}`);
+          const msg = e instanceof Error ? e.message : String(e);
+          this.logger.warn(`Failed to parse ${file}: ${msg}`);
         }
       }
     }
@@ -188,7 +190,8 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
           }
         }
       } catch (itemErr) {
-        this.logger.warn(`Failed to seed service "${record.name}": ${itemErr.message}`);
+        const msg = itemErr instanceof Error ? itemErr.message : String(itemErr);
+        this.logger.warn(`Failed to seed service "${record.name}": ${msg}`);
       }
     }
 
