@@ -58,25 +58,47 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
 
         try {
             const existingCount = await this.serviceRepo.count();
-            if (existingCount > 0 && process.env.FORCE_SEED !== 'true') {
-                this.logger.log(`Service catalogue already has ${existingCount} services. Skipping auto-seed.`);
-                return;
-            }
+            this.logger.log(`Service catalogue currently has ${existingCount} service(s) in DB.`);
 
+            // --- Locate seed data files ---
+            // Build a wide list of candidate directories so the seeder works
+            // regardless of runtime environment (local dev, Docker, Railway/Nixpacks).
             const candidateDirs = [
+                // Docker compose: cwd = /app/src/modules/service-catalogue
+                path.resolve(process.cwd(), 'scripts/data'),
+                // Railway Nixpacks: source files may be at project root
+                path.resolve(process.cwd(), 'src/modules/service-catalogue/scripts/data'),
+                // NestJS assets copy: nest build copies JSON into dist/scripts/data
+                path.resolve(process.cwd(), 'dist/scripts/data'),
+                // Relative to compiled __dirname in dist/
                 path.resolve(__dirname, '../scripts/data'),
                 path.resolve(__dirname, '../../scripts/data'),
-                path.resolve(process.cwd(), 'src/modules/service-catalogue/scripts/data'),
-                path.resolve(process.cwd(), 'scripts/data'),
+                path.resolve(__dirname, '../../../scripts/data'),
+                path.resolve(__dirname, '../../../../scripts/data'),
+                // Absolute fallbacks for common layouts
                 path.resolve(__dirname, '../../../src/modules/service-catalogue/scripts/data'),
+                path.resolve(__dirname, '../../../../src/modules/service-catalogue/scripts/data'),
             ];
 
-            const dataDir = candidateDirs.find((dir) =>
-                fs.existsSync(path.join(dir, 'batch1_academic_office.json')),
-            );
+            this.logger.log(`[Seeder Debug] __dirname = ${__dirname}`);
+            this.logger.log(`[Seeder Debug] process.cwd() = ${process.cwd()}`);
+
+            let dataDir: string | undefined;
+            for (const dir of candidateDirs) {
+                const testFile = path.join(dir, 'batch1_academic_office.json');
+                const exists = fs.existsSync(testFile);
+                this.logger.log(`[Seeder Debug] Checking ${dir} => ${exists ? 'FOUND' : 'not found'}`);
+                if (exists && !dataDir) {
+                    dataDir = dir;
+                }
+            }
 
             if (!dataDir) {
-                this.logger.warn('Seed data directory not found in candidate paths. Skipping catalogue auto-seed.');
+                this.logger.warn(
+                    'Seed data directory not found in any candidate path. ' +
+                    'Ensure scripts/data/*.json files are present in the deployed build. ' +
+                    'Skipping catalogue auto-seed.',
+                );
                 return;
             }
 
@@ -94,6 +116,9 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
                 if (fs.existsSync(filePath)) {
                     const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
                     rawRecords.push(...data);
+                    this.logger.log(`  Loaded ${data.length} records from ${file}`);
+                } else {
+                    this.logger.warn(`  Batch file missing: ${filePath}`);
                 }
             }
 
@@ -108,7 +133,10 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
                 }
             }
 
+            this.logger.log(`Total unique records to process: ${uniqueRecords.length}`);
+
             let createdServices = 0;
+            let skippedServices = 0;
             let createdIntakeFields = 0;
 
             for (const r of uniqueRecords) {
@@ -116,7 +144,7 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
                 const office = r.office?.trim();
                 const serviceMode = r.service_mode ? r.service_mode.trim() : null;
 
-                // Check if already exists
+                // Check if already exists (per-record dedup — safe to re-run)
                 const existing = await this.serviceRepo.findOne({
                     where: {
                         office,
@@ -126,6 +154,7 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
                 });
 
                 if (existing) {
+                    skippedServices++;
                     continue;
                 }
 
@@ -167,7 +196,9 @@ export class CatalogueSeederService implements OnApplicationBootstrap {
             }
 
             this.logger.log(
-                `Catalogue auto-seed completed: ${createdServices} services and ${createdIntakeFields} intake fields created.`,
+                `Catalogue auto-seed completed: ` +
+                `${createdServices} created, ${skippedServices} skipped (already existed), ` +
+                `${createdIntakeFields} intake fields created.`,
             );
         } catch (err) {
             this.logger.error('Failed to auto-seed service catalogue:', err);

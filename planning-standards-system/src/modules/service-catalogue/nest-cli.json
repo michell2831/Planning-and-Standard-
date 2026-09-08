@@ -3,7 +3,14 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": ".",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "assets": [
+      {
+        "include": "scripts/data/**/*.json",
+        "outDir": "dist",
+        "watchAssets": false
+      }
+    ]
   },
   "entryFile": "modules/service-catalogue/main"
 }

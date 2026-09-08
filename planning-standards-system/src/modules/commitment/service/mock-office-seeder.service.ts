@@ -21,13 +21,14 @@ export class MockOfficeSeederService implements OnApplicationBootstrap {
         try {
             const countResult = await this.dataSource.query('SELECT count(*) FROM "commitment"');
             const count = Number(countResult[0]?.count || 0);
+            this.logger.log(`Commitment table currently has ${count} record(s).`);
 
             if (count === 0 || process.env.FORCE_SEED === 'true') {
-                this.logger.log('No commitment records found. Running MockOfficeSeeder...');
+                this.logger.log('Running MockOfficeSeeder...');
                 await MockOfficeSeeder.run(this.dataSource);
                 this.logger.log('MockOfficeSeeder completed successfully.');
             } else {
-                this.logger.log(`Commitment table already has ${count} records. Skipping mock office seeder.`);
+                this.logger.log(`Skipping mock office seeder — ${count} commitments already exist.`);
             }
         } catch (err) {
             this.logger.error('Failed to auto-seed mock office commitments:', err);
