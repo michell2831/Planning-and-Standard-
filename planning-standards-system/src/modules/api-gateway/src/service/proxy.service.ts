@@ -20,7 +20,15 @@ export class ProxyService {
             throw new HttpException('Upstream microservice URL is not configured', 503);
         }
 
-        const base = targetBaseUrl.replace(/\/$/, '');
+        let base = targetBaseUrl.trim().replace(/\/$/, '');
+        if (!base.startsWith('http://') && !base.startsWith('https://')) {
+            if (base.includes('.railway.internal') || base.includes('localhost')) {
+                base = `http://${base}`;
+            } else {
+                base = `https://${base}`;
+            }
+        }
+
         let path = req.originalUrl;
         if (base.endsWith('/api') && path.startsWith('/api/')) {
             path = path.replace(/^\/api/, '');
@@ -62,9 +70,11 @@ export class ProxyService {
             const contentDisposition = response.headers['content-disposition'] as string | undefined;
             if (contentDisposition) res.setHeader('content-disposition', contentDisposition);
             res.send(Buffer.from(response.data));
-        } catch (err) {
+        } catch (err: any) {
+            console.error(`[ProxyService] Error forwarding to ${targetUrl}:`, err?.message || err);
+            const detail = err?.message ? ` (${err.message})` : '';
             throw new HttpException(
-                'Upstream service unreachable',
+                `Upstream service unreachable at ${targetUrl}${detail}`,
                 503,
             );
         }
