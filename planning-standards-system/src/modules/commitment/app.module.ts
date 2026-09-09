@@ -27,21 +27,38 @@ import { CommitmentSeederService } from './service/commitment-seeder.service';
         TypeOrmModule.forRootAsync({
             name: 'commitment_db',
             imports: [ConfigModule],
-            useFactory: (config: ConfigService) => ({
-                type: 'postgres',
-                name: 'commitment_db',
-                host: config.get('DB_HOST'),
-                port: config.get<number>('DB_PORT'),
-                username: config.get('DB_USERNAME'),
-                password: config.get('DB_PASSWORD'),
-                database: config.get('DB_NAME'),
-                entities: [Commitment, CommitmentItem, CommitmentVersion, PendingAuditEvent],
-                migrations: [__dirname + '/database/migrations/*.{ts,js}'],
-                migrationsTableName: 'typeorm_migrations',
-                synchronize: true,
-                migrationsRun: true,
-                logging: config.get('NODE_ENV') !== 'production',
-            }),
+            useFactory: (config: ConfigService) => {
+                const dbUrl = config.get<string>('DATABASE_URL');
+                const useSsl = config.get('DB_SSL') === 'true' || (dbUrl && (dbUrl.includes('railway') || dbUrl.includes('render')));
+
+                const baseConfig = {
+                    type: 'postgres' as const,
+                    name: 'commitment_db',
+                    entities: [Commitment, CommitmentItem, CommitmentVersion, PendingAuditEvent],
+                    migrations: [__dirname + '/database/migrations/*.{ts,js}'],
+                    migrationsTableName: 'typeorm_migrations',
+                    synchronize: true,
+                    migrationsRun: true,
+                    logging: config.get('NODE_ENV') !== 'production',
+                    ssl: useSsl ? { rejectUnauthorized: false } : false,
+                };
+
+                if (dbUrl) {
+                    return {
+                        ...baseConfig,
+                        url: dbUrl,
+                    };
+                }
+
+                return {
+                    ...baseConfig,
+                    host: config.get('DB_HOST') || 'localhost',
+                    port: config.get<number>('DB_PORT') || 5432,
+                    username: config.get('DB_USERNAME') || 'postgres',
+                    password: String(config.get('DB_PASSWORD') || ''),
+                    database: config.get('DB_NAME') || 'commitment-db',
+                };
+            },
             inject: [ConfigService],
         }),
         TypeOrmModule.forFeature(

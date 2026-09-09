@@ -1,9 +1,16 @@
 import { getToken, clearToken } from './auth';
 
-const PRIMARY_API_BASE = (import.meta.env.VITE_API_URL || 'https://icsa-api.onrender.com').replace(/\/$/, '');
-const CLOUD_FALLBACK_BASE = 'https://icsa-api.onrender.com';
+const PSS_API_URL = import.meta.env.VITE_API_URL;
+if (!PSS_API_URL) {
+  console.error('[PSS API Configuration Error] VITE_API_URL is not configured.');
+}
+const API_BASE = (PSS_API_URL || '').replace(/\/$/, '');
 
 async function request(url, options = {}) {
+  if (!API_BASE) {
+    throw new Error('VITE_API_URL is not configured. Please check your environment variables.');
+  }
+
   const token = getToken();
 
   const headers = {
@@ -15,54 +22,17 @@ async function request(url, options = {}) {
   };
 
   let endpoint = url.startsWith('/') ? url : `/${url}`;
-  if (PRIMARY_API_BASE.endsWith('/api') && endpoint.startsWith('/api/')) {
+  if (API_BASE.endsWith('/api') && endpoint.startsWith('/api/')) {
     endpoint = endpoint.replace(/^\/api/, '');
+  } else if (!API_BASE.endsWith('/api') && !endpoint.startsWith('/api/')) {
+    endpoint = `/api${endpoint}`;
   }
 
-  let response;
-  let usedFallback = false;
-
-  try {
-    response = await fetch(`${PRIMARY_API_BASE}${endpoint}`, {
-      cache: 'no-store',
-      ...options,
-      headers,
-    });
-
-    // If primary returned 404/502/503/504 and primary is different from fallback cloud, try fallback cloud
-    if (!response.ok && [404, 502, 503, 504].includes(response.status) && PRIMARY_API_BASE !== CLOUD_FALLBACK_BASE) {
-      try {
-        const fallbackEndpoint = endpoint.replace(/^\/api/, '');
-        const fallbackResp = await fetch(`${CLOUD_FALLBACK_BASE}${fallbackEndpoint}`, {
-          cache: 'no-store',
-          ...options,
-          headers,
-        });
-        if (fallbackResp.ok) {
-          response = fallbackResp;
-          usedFallback = true;
-        }
-      } catch (_) {
-        // keep original response if fallback network fails
-      }
-    }
-  } catch (netErr) {
-    if (PRIMARY_API_BASE !== CLOUD_FALLBACK_BASE) {
-      try {
-        const fallbackEndpoint = endpoint.replace(/^\/api/, '');
-        response = await fetch(`${CLOUD_FALLBACK_BASE}${fallbackEndpoint}`, {
-          cache: 'no-store',
-          ...options,
-          headers,
-        });
-        usedFallback = true;
-      } catch (_) {
-        throw netErr;
-      }
-    } else {
-      throw netErr;
-    }
-  }
+  const response = await fetch(`${API_BASE}${endpoint}`, {
+    cache: 'no-store',
+    ...options,
+    headers,
+  });
 
   try {
     if (response.status === 401 && !url.includes('/auth') && !url.includes('/sync') && !url.includes('/hub-summary') && !url.includes('/planning')) {

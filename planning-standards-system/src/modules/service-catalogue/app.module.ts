@@ -22,23 +22,37 @@ import { CatalogueSeederService } from './service/catalogue-seeder.service';
     TypeOrmModule.forRootAsync({
       name: 'catalogue_db',
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        name: 'catalogue_db',
-        host:     config.get('DB_HOST'),
-        port:     config.get<number>('DB_PORT'),
-        username: config.get('DB_USERNAME'),
-          password: String(config.get('DB_PASSWORD')),
-        database: config.get('DB_NAME'),
-        entities: [Service, ServiceVersion, IntakeField, NaFlag, ServiceMode],
-        // Migrations are now the source of truth for schema changes.
-        // synchronize: false prevents TypeORM from auto-diffing entities on boot,
-        // which would conflict with explicit migration runs.
-        synchronize: false,
-        migrations: [__dirname + '/database/migrations/*.{ts,js}'],
-        migrationsTableName: 'typeorm_migrations',
-        migrationsRun: true,  // auto-apply pending migrations on startup
-      }),
+      useFactory: (config: ConfigService) => {
+        const dbUrl = config.get<string>('DATABASE_URL');
+        const useSsl = config.get('DB_SSL') === 'true' || (dbUrl && (dbUrl.includes('railway') || dbUrl.includes('render')));
+
+        const baseConfig = {
+          type: 'postgres' as const,
+          name: 'catalogue_db',
+          entities: [Service, ServiceVersion, IntakeField, NaFlag, ServiceMode],
+          synchronize: false,
+          migrations: [__dirname + '/database/migrations/*.{ts,js}'],
+          migrationsTableName: 'typeorm_migrations',
+          migrationsRun: true,
+          ssl: useSsl ? { rejectUnauthorized: false } : false,
+        };
+
+        if (dbUrl) {
+          return {
+            ...baseConfig,
+            url: dbUrl,
+          };
+        }
+
+        return {
+          ...baseConfig,
+          host:     config.get('DB_HOST') || 'localhost',
+          port:     config.get<number>('DB_PORT') || 5432,
+          username: config.get('DB_USERNAME') || 'postgres',
+          password: String(config.get('DB_PASSWORD') || ''),
+          database: config.get('DB_NAME') || 'service-catalogue-db',
+        };
+      },
       inject: [ConfigService],
     }),
 

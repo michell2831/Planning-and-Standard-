@@ -28,17 +28,34 @@ import { PeriodKpiSeederService } from './service/period-kpi-seeder.service';
         TypeOrmModule.forRootAsync({
             name: 'kpi_sla_db',
             imports: [ConfigModule],
-            useFactory: (config: ConfigService) => ({
-                type: 'postgres',
-                name: 'kpi_sla_db',
-                host: config.get('DB_HOST'),
-                port: config.get<number>('DB_PORT'),
-                username: config.get('DB_USERNAME'),
-                password: config.get('DB_PASSWORD'),
-                database: config.get('DB_NAME'),
-                entities: [Kpi, SlaRule, SlaRuleVersion, Holiday, EvaluationPeriod, SlaComputationLog, ServiceUtilization],
-                synchronize: true,
-            }),
+            useFactory: (config: ConfigService) => {
+                const dbUrl = config.get<string>('DATABASE_URL');
+                const useSsl = config.get('DB_SSL') === 'true' || (dbUrl && (dbUrl.includes('railway') || dbUrl.includes('render')));
+
+                const baseConfig = {
+                    type: 'postgres' as const,
+                    name: 'kpi_sla_db',
+                    entities: [Kpi, SlaRule, SlaRuleVersion, Holiday, EvaluationPeriod, SlaComputationLog, ServiceUtilization],
+                    synchronize: true,
+                    ssl: useSsl ? { rejectUnauthorized: false } : false,
+                };
+
+                if (dbUrl) {
+                    return {
+                        ...baseConfig,
+                        url: dbUrl,
+                    };
+                }
+
+                return {
+                    ...baseConfig,
+                    host: config.get('DB_HOST') || 'localhost',
+                    port: config.get<number>('DB_PORT') || 5432,
+                    username: config.get('DB_USERNAME') || 'postgres',
+                    password: String(config.get('DB_PASSWORD') || ''),
+                    database: config.get('DB_NAME') || 'kpi-sla-db',
+                };
+            },
             inject: [ConfigService],
         }),
         TypeOrmModule.forFeature(

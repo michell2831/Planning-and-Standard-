@@ -16,8 +16,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import StarIcon from "@mui/icons-material/Star";
 import iscaProfile from "../logo/isca profile.png";
-
-const ICSA_API = (import.meta.env.VITE_ICSA_API_URL || "https://icsa-api.onrender.com").replace(/\/$/, "");
+const ICSA_API_URL = import.meta.env.VITE_ISCA_API_URL || import.meta.env.VITE_ICSA_API_URL || "https://icsa-api.onrender.com";
+const ICSA_API = ICSA_API_URL.replace(/\/$/, "");
 
 const SUGGESTED_QUESTIONS = [
     {

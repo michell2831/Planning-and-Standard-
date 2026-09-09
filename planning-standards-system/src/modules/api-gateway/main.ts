@@ -5,8 +5,18 @@ import { AppModule } from './src/app.module';
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
 
+    const rawAllowed = process.env.ALLOWED_ORIGINS || process.env.FRONTEND_URL;
+    const explicitOrigins = rawAllowed ? rawAllowed.split(',').map(o => o.trim()) : [];
+
     app.enableCors({
-        origin: true,
+        origin: (origin, callback) => {
+            if (!origin) return callback(null, true);
+            if (explicitOrigins.includes(origin)) return callback(null, true);
+            if (/^https:\/\/.*\.vercel\.app$/.test(origin)) return callback(null, true);
+            if (/^http:\/\/localhost(:\d+)?$/.test(origin)) return callback(null, true);
+            // Default permissive for preview/staging
+            callback(null, true);
+        },
         methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
         credentials: true,
     });
