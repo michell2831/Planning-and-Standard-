@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { Service } from './database/service.entity';
 import { ServiceVersion } from './database/service-version.entity';
 import { IntakeField } from './database/service-intake-field.entity';
@@ -22,35 +22,38 @@ import { CatalogueSeederService } from './service/catalogue-seeder.service';
     TypeOrmModule.forRootAsync({
       name: 'catalogue_db',
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => {
+      useFactory: (config: ConfigService): TypeOrmModuleOptions => {
         const dbUrl = config.get<string>('DATABASE_URL');
         const useSsl = config.get('DB_SSL') === 'true' || (dbUrl && (dbUrl.includes('railway') || dbUrl.includes('render')));
 
-        const baseConfig = {
-          type: 'postgres' as const,
+        if (dbUrl) {
+          return {
+            type: 'postgres',
+            name: 'catalogue_db',
+            url: dbUrl,
+            entities: [Service, ServiceVersion, IntakeField, NaFlag, ServiceMode],
+            synchronize: false,
+            migrations: [__dirname + '/database/migrations/*.{ts,js}'],
+            migrationsTableName: 'typeorm_migrations',
+            migrationsRun: true,
+            ssl: useSsl ? { rejectUnauthorized: false } : false,
+          };
+        }
+
+        return {
+          type: 'postgres',
           name: 'catalogue_db',
+          host: config.get<string>('DB_HOST') || 'localhost',
+          port: Number(config.get('DB_PORT') || 5432),
+          username: config.get<string>('DB_USERNAME') || 'postgres',
+          password: String(config.get('DB_PASSWORD') || ''),
+          database: String(config.get<string>('DB_NAME') || 'service-catalogue-db'),
           entities: [Service, ServiceVersion, IntakeField, NaFlag, ServiceMode],
           synchronize: false,
           migrations: [__dirname + '/database/migrations/*.{ts,js}'],
           migrationsTableName: 'typeorm_migrations',
           migrationsRun: true,
           ssl: useSsl ? { rejectUnauthorized: false } : false,
-        };
-
-        if (dbUrl) {
-          return {
-            ...baseConfig,
-            url: dbUrl,
-          };
-        }
-
-        return {
-          ...baseConfig,
-          host:     config.get('DB_HOST') || 'localhost',
-          port:     config.get<number>('DB_PORT') || 5432,
-          username: config.get('DB_USERNAME') || 'postgres',
-          password: String(config.get('DB_PASSWORD') || ''),
-          database: config.get('DB_NAME') || 'service-catalogue-db',
         };
       },
       inject: [ConfigService],

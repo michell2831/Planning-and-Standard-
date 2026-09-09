@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { Kpi } from './database/kpi.entity';
 import { SlaRule } from './database/sla-rule.entity';
@@ -28,32 +28,32 @@ import { PeriodKpiSeederService } from './service/period-kpi-seeder.service';
         TypeOrmModule.forRootAsync({
             name: 'kpi_sla_db',
             imports: [ConfigModule],
-            useFactory: (config: ConfigService) => {
+            useFactory: (config: ConfigService): TypeOrmModuleOptions => {
                 const dbUrl = config.get<string>('DATABASE_URL');
                 const useSsl = config.get('DB_SSL') === 'true' || (dbUrl && (dbUrl.includes('railway') || dbUrl.includes('render')));
 
-                const baseConfig = {
-                    type: 'postgres' as const,
-                    name: 'kpi_sla_db',
-                    entities: [Kpi, SlaRule, SlaRuleVersion, Holiday, EvaluationPeriod, SlaComputationLog, ServiceUtilization],
-                    synchronize: true,
-                    ssl: useSsl ? { rejectUnauthorized: false } : false,
-                };
-
                 if (dbUrl) {
                     return {
-                        ...baseConfig,
+                        type: 'postgres',
+                        name: 'kpi_sla_db',
                         url: dbUrl,
+                        entities: [Kpi, SlaRule, SlaRuleVersion, Holiday, EvaluationPeriod, SlaComputationLog, ServiceUtilization],
+                        synchronize: true,
+                        ssl: useSsl ? { rejectUnauthorized: false } : false,
                     };
                 }
 
                 return {
-                    ...baseConfig,
-                    host: config.get('DB_HOST') || 'localhost',
-                    port: config.get<number>('DB_PORT') || 5432,
-                    username: config.get('DB_USERNAME') || 'postgres',
+                    type: 'postgres',
+                    name: 'kpi_sla_db',
+                    host: config.get<string>('DB_HOST') || 'localhost',
+                    port: Number(config.get('DB_PORT') || 5432),
+                    username: config.get<string>('DB_USERNAME') || 'postgres',
                     password: String(config.get('DB_PASSWORD') || ''),
-                    database: config.get('DB_NAME') || 'kpi-sla-db',
+                    database: String(config.get<string>('DB_NAME') || 'kpi-sla-db'),
+                    entities: [Kpi, SlaRule, SlaRuleVersion, Holiday, EvaluationPeriod, SlaComputationLog, ServiceUtilization],
+                    synchronize: true,
+                    ssl: useSsl ? { rejectUnauthorized: false } : false,
                 };
             },
             inject: [ConfigService],
